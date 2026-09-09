@@ -20,4 +20,7 @@ jobs:
           python-version: "3.12"
 
       - name: Run Coin Hunter
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
         run: python hunter.py
