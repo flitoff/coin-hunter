@@ -1,3 +1,7 @@
+import os
+import json
+import urllib.request
+import urllib.error
 from datetime import datetime, timezone
 
 
@@ -36,7 +40,6 @@ SEARCH_PROFILES = [
 ]
 
 
-# Searches designed to find badly described / unidentified coins
 HIDDEN_FIND_PROFILES = [
     "old spanish silver coin",
     "unknown silver coin",
@@ -46,6 +49,46 @@ HIDDEN_FIND_PROFILES = [
 ]
 
 
+def check_supabase_connection():
+    url = os.environ.get("SUPABASE_URL")
+    secret_key = os.environ.get("SUPABASE_SECRET_KEY")
+
+    if not url:
+        raise RuntimeError("SUPABASE_URL is missing")
+
+    if not secret_key:
+        raise RuntimeError("SUPABASE_SECRET_KEY is missing")
+
+    endpoint = f"{url.rstrip('/')}/rest/v1/listings?select=id&limit=1"
+
+    request = urllib.request.Request(
+        endpoint,
+        headers={
+            "apikey": secret_key,
+            "Accept": "application/json",
+        },
+        method="GET",
+    )
+
+    try:
+        with urllib.request.urlopen(request, timeout=20) as response:
+            data = json.loads(response.read().decode("utf-8"))
+
+            print("Supabase connection: OK")
+            print(f"Database response: {len(data)} row(s)")
+
+    except urllib.error.HTTPError as exc:
+        error_body = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(
+            f"Supabase HTTP error {exc.code}: {error_body}"
+        ) from exc
+
+    except urllib.error.URLError as exc:
+        raise RuntimeError(
+            f"Supabase connection failed: {exc.reason}"
+        ) from exc
+
+
 def run_hunter():
     now = datetime.now(timezone.utc)
 
@@ -53,6 +96,10 @@ def run_hunter():
     print("COIN HUNTER")
     print("=" * 50)
     print(f"Scan started: {now.isoformat()}")
+    print()
+
+    print("DATABASE")
+    check_supabase_connection()
     print()
 
     print("MAIN SEARCH PROFILES")
